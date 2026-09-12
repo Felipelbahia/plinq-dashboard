@@ -1,0 +1,17 @@
+{
+  "name": "Plinq · Dashboard de Suporte v3.0",
+  "short_name": "Plinq Suporte",
+  "description": "Dashboard Operacional e Relatório de Suporte v3.0 - Plinq",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

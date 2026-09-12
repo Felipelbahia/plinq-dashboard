@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plinq · Dashboard e Relatório de Suporte v3.0 (Especificação Integral)</title>
+
+  <meta name="description" content="Dashboard Operacional e Relatório de Suporte v3.0 - Plinq. Monitoramento de fila 24x7, métricas de espera, CX e taxonomia.">
+  <meta name="theme-color" content="#0d1117">
+
+  <!-- Open Graph / Redes Sociais -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Plinq · Dashboard de Suporte v3.0">
+  <meta property="og:description" content="Operação Plinq · Fila em Tempo Real, Métricas CX, Resoluções e Auditoria de Chamados.">
+
+  <!-- Favicon e PWA Manifest -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="site.webmanifest">
+
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+
+  <!-- HEADER DA APLICAÇÃO -->
+  <header class="header">
+    <div class="header-content">
+      <div class="brand">
+        <div class="logo-circle">P</div>
+        <div>
+          <h1>Dashboard de Suporte</h1>
+          <p>Operação Plinq · Especificação & Relatório v3.0 (Cobertura Integral Parte 1 - 5)</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="live-indicator">
+          <span class="pulse-dot"></span>
+          <span>Fila em Tempo Real (Supabase Sync)</span>
+        </div>
+        <div class="refresh-controls">
+          <button type="button" class="btn-refresh" id="btn-manual-refresh" onclick="triggerManualRefresh()" title="Atualizar dados agora">
+            <svg id="refresh-icon" class="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span>Atualizar</span>
+          </button>
+          <span class="last-update-time" id="last-update-time" title="Horário da última sincronização">Carregando...</span>
+        </div>
+        <span class="badge badge-warning" id="badge-adherence-top" style="display:none;">Adesão Taxonomia: --%</span>
+      </div>
+    </div>
+
+    <!-- BARRAMENTO DE FILTROS GLOBAIS -->
+    <div class="filter-bar">
+      <!-- SELETOR DE PERÍODO COM POPOVER FLUTUANTE & PRESETS -->
+      <div class="filter-group date-picker-group" id="date-picker-group">
+        <label for="date-picker-trigger">Período de Análise</label>
+        <button type="button" class="date-picker-trigger" id="date-picker-trigger" onclick="toggleDatePicker(event)">
+          <div class="trigger-content">
+            <svg class="calendar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span id="date-picker-label">Últimos 30 Dias</span>
+          </div>
+          <span class="chevron">▾</span>
+        </button>
+
+        <div class="date-picker-panel" id="date-picker-panel" hidden onclick="event.stopPropagation()">
+          <div class="date-panel-section-title">
+            <span>Atalhos Rápidos</span>
+            <span style="font-size: 0.65rem; color: var(--accent-blue);">1 Clique</span>
+          </div>
+          
+          <div class="date-preset-grid">
+            <button type="button" class="date-preset-chip" data-preset="today" onclick="selectPreset('today')">
+              <span>Hoje</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="yesterday" onclick="selectPreset('yesterday')">
+              <span>Ontem</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="this_week" onclick="selectPreset('this_week')">
+              <span>Esta Semana</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="last_week" onclick="selectPreset('last_week')">
+              <span>Semana Passada</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="7d" onclick="selectPreset('7d')">
+              <span>Últimos 7 Dias</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip active" data-preset="30d" onclick="selectPreset('30d')">
+              <span>Últimos 30 Dias</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="this_month" onclick="selectPreset('this_month')">
+              <span>Este Mês</span>
+              <span class="check-icon">✓</span>
+            </button>
+            <button type="button" class="date-preset-chip" data-preset="last_month" onclick="selectPreset('last_month')">
+              <span>Mês Anterior</span>
+              <span class="check-icon">✓</span>
+            </button>
+          </div>
+
+          <div class="date-custom-panel">
+            <div class="date-panel-section-title">
+              <span>Intervalo Personalizado</span>
+            </div>
+            <div class="date-custom-row">
+              <div class="date-custom-input-wrap">
+                <span class="date-custom-label">De</span>
+                <input type="date" id="filter-date-start" class="date-custom-input" onchange="validateCustomDateInputs()">
+              </div>
+              <div class="date-custom-input-wrap">
+                <span class="date-custom-label">Até</span>
+                <input type="date" id="filter-date-end" class="date-custom-input" onchange="validateCustomDateInputs()">
+              </div>
+            </div>
+            <div class="date-custom-error" id="date-custom-error">Data inicial não pode ser maior que a final.</div>
+            <button type="button" class="date-custom-apply-btn" id="btn-apply-custom-date" onclick="applyCustomDateRange()">
+              Aplicar Intervalo
+            </button>
+          </div>
+
+          <div class="date-panel-footer">
+            <div class="timezone-info">
+              <span>🕒</span>
+              <span>Fuso: Horário de Brasília (BRT)</span>
+            </div>
+            <button type="button" style="background:none; border:none; color:var(--accent-blue); font-size:0.68rem; cursor:pointer; font-weight:600; text-decoration:underline;" onclick="selectPreset('30d')">
+              Restaurar Padrão (30 Dias)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-channel">
+        <label>Caixa de Entrada</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('channel')">
+          <span id="ms-channel-label">Carregando...</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-channel" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('channel')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('channel')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-channel"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-agent">
+        <label>Agente</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('agent')">
+          <span id="ms-agent-label">Todas</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-agent" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('agent')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('agent')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-agent"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-team">
+        <label>Time</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('team')">
+          <span id="ms-team-label">Todos</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-team" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('team')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('team')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-team"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-severity">
+        <label>Severidade</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('severity')">
+          <span id="ms-severity-label">Todas</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-severity" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('severity')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('severity')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-severity"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-origin">
+        <label>Origem Atendimento</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('origin')">
+          <span id="ms-origin-label">Todos</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-origin" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('origin')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('origin')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-origin"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-taxonomy">
+        <label>Status Taxonomia</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('taxonomy')">
+          <span id="ms-taxonomy-label">Todas</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-taxonomy" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('taxonomy')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('taxonomy')">Limpar</button>
+          </div>
+          <div class="multiselect-options" id="ms-options-taxonomy"></div>
+        </div>
+      </div>
+
+      <div class="filter-group multiselect" id="ms-group-tag">
+        <label>Tag</label>
+        <button type="button" class="multiselect-trigger" onclick="msToggle('tag')">
+          <span id="ms-tag-label">Carregando...</span><span class="chevron">▾</span>
+        </button>
+        <div class="multiselect-panel" id="ms-panel-tag" hidden>
+          <div class="multiselect-actions">
+            <button type="button" onclick="msSelectAll('tag')">Marcar todos</button>
+            <button type="button" onclick="msSelectNone('tag')">Limpar</button>
+          </div>
+          <input type="text" class="multiselect-search" placeholder="Buscar tag..." oninput="msFilterSearch('tag', this.value)">
+          <div class="multiselect-options" id="ms-options-tag"></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-business-hours">Início Fora do Expediente</label>
+        <select id="filter-business-hours" class="filter-select" onchange="handleFilterChange()">
+          <option value="all" selected>Todas as Conversas</option>
+          <option value="only_outside">Só Iniciadas Fora (09h-18h Seg-Sex)</option>
+          <option value="exclude_outside">Excluir Iniciadas Fora</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-weekend">Início no Fim de Semana</label>
+        <select id="filter-weekend" class="filter-select" onchange="handleFilterChange()">
+          <option value="all" selected>Todas as Conversas</option>
+          <option value="only_weekend">Só Iniciadas no Fim de Semana (Sex 18h-Seg 9h)</option>
+          <option value="exclude_weekend">Excluir Iniciadas no Fim de Semana</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- PAINEL PRINCIPAL DE CONTEÚDO -->
+  <main class="main-container">
+
+    <!-- BLOCO A: FILA AGORA (MOMENTO ATUAL - FILA VIVA 24X7) -->
+    <section class="section">
+      <div class="section-title">
+        <span>A. FILA AGORA (MOMENTO ATUAL VIVO)</span>
+        <span class="section-subtitle">Operação em tempo real sem filtro de data</span>
+      </div>
+
+      <div class="cards-grid">
+        <!-- D-01: Fila Plinq -->
+        <div class="card card-interactive" onclick="openDrilldownModal('d01')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-01 · Fila Atendimento Plinq</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-01">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-01 · Fila Atendimento Plinq</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Volume de conversas abertas aguardando primeira ou nova resposta humana.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Tempo real (24x7). Conversas não resolvidas cuja última mensagem partiu da cliente.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Manter fila controlada durante o dia e zerada às 18:00 BRT.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Clique p/ Detalhar</span>
+          </div>
+          <div class="card-value" id="d01-value">0</div>
+          <div class="card-subtext">Chamados abertos aguardando resposta humana</div>
+        </div>
+
+        <!-- D-02: Aguardando Usuária -->
+        <div class="card card-interactive" onclick="openDrilldownModal('d02')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-02 · Aguardando Usuária</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-02">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-02 · Aguardando Usuária</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Chamados onde a equipe já respondeu e o fluxo depende de retorno da usuária.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Tempo real (24x7). Conversas abertas com última mensagem de saída de agente humano.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Monitoramento ativo; encerramento automático após 3 dias de inatividade.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d02-value">0</div>
+          <div class="card-subtext">Aguardando resposta do cliente</div>
+        </div>
+
+        <!-- D-03: Alerta Red >10 min -->
+        <div class="card card-success card-interactive" id="d03-card" onclick="openDrilldownModal('d03')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-03 · Alerta Red (&gt; 10 min)</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-03">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-03 · Alerta Red (&gt; 10 min)</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Chamados de prioridade crítica (P0 / sev-red) que ultrapassaram 10 min sem resposta.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Janela atendível. Dispara alerta sonoro e visual imediato no dashboard.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta" style="color:var(--accent-red);">Zero chamados &gt; 10 min (Ação Imediata).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ação Imediata</span>
+          </div>
+          <div class="card-value" id="d03-value">0</div>
+          <div class="card-subtext">Prioridade P0 / `sev-red` sem resposta humana</div>
+        </div>
+
+        <!-- D-05: Sem Atendimento Nenhum -->
+        <div class="card card-warning card-interactive" onclick="openDrilldownModal('d05')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-05 · Sem Atendimento Nenhum</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-05">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-05 · Sem Atendimento Nenhum</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Chamados na fila que ainda não receberam nenhuma mensagem humana de saída.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Tempo real (24x7). Filtra conversas com `first_public_reply_at IS NULL`.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Zerar backlog virgem ao longo do expediente.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Auditar</span>
+          </div>
+          <div class="card-value" id="d05-value">0</div>
+          <div class="card-subtext">Sem nenhuma resposta humana de saída</div>
+        </div>
+
+        <!-- D-06: Adesão à Taxonomia (%) -->
+        <div class="card card-info card-interactive" id="d06-card" onclick="openDrilldownModal('d06')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-06 · Adesão à Taxonomia (%)</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-06">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-06 · Adesão à Taxonomia (%)</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Percentual de chamados classificados com etiquetas oficiais de Severidade e Motivo.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Total com etiquetas válidas dividido pelo total de chamados elegíveis.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">&gt;= 90% de adesão à taxonomia oficial.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Auditar</span>
+          </div>
+          <div class="card-value" id="d06-value">—</div>
+          <div class="card-subtext" id="d06-subtext">Taxonomia de etiquetas (Severidade + Motivo)</div>
+        </div>
+      </div>
+
+      <!-- D-04: Histograma de Idade / Envelhecimento -->
+      <div class="card chart-card card-interactive" onclick="openDrilldownModal('d04')">
+        <div class="chart-header">
+          <div>
+            <div class="card-label-wrap">
+              <h3 style="margin:0;">D-04 · Envelhecimento da Fila (Faixas Atendíveis)</h3>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-04">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-04 · Envelhecimento da Fila</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Faixas de tempo de espera acumulado pelos chamados atualmente abertos.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Horário comercial (09:00–18:00 BRT, seg a sex). Exclui noites e fins de semana.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Mediana &lt; 15 min e P90 &lt; 45 min em horário útil.</span>
+                  </div>
+                </div>
+              </div>
+              <span class="badge-click" style="font-size: 0.7rem; font-weight: normal; margin-left: 0.5rem;">Ver Lista</span>
+            </div>
+            <p class="chart-subtitle">Horário comercial 09:00 - 18:00 (Segunda a Sexta)</p>
+          </div>
+          <div class="stats-summary">
+            <span>Mediana: <strong id="d04-median">0 min</strong></span>
+            <span>P90: <strong id="d04-p90">0 min</strong></span>
+          </div>
+        </div>
+
+        <div class="histogram-grid">
+          <div class="hist-item">
+            <span class="hist-label">&lt; 1 hora</span>
+            <div class="bar-container">
+              <div class="bar bar-green" id="bar-u1h" style="width: 0%"></div>
+            </div>
+            <span class="hist-val" id="val-u1h">0</span>
+          </div>
+
+          <div class="hist-item">
+            <span class="hist-label">1h a 4h</span>
+            <div class="bar-container">
+              <div class="bar bar-blue" id="bar-1-4h" style="width: 0%"></div>
+            </div>
+            <span class="hist-val" id="val-1-4h">0</span>
+          </div>
+
+          <div class="hist-item">
+            <span class="hist-label">4h a 24h</span>
+            <div class="bar-container">
+              <div class="bar bar-yellow" id="bar-4-24h" style="width: 0%"></div>
+            </div>
+            <span class="hist-val" id="val-4-24h">0</span>
+          </div>
+
+          <div class="hist-item">
+            <span class="hist-label">24h a 72h</span>
+            <div class="bar-container">
+              <div class="bar bar-orange" id="bar-24-72h" style="width: 0%"></div>
+            </div>
+            <span class="hist-val" id="val-24-72h">0</span>
+          </div>
+
+          <div class="hist-item">
+            <span class="hist-label">&gt; 72h</span>
+            <div class="bar-container">
+              <div class="bar bar-red" id="bar-o72h" style="width: 0%"></div>
+            </div>
+            <span class="hist-val" id="val-o72h">0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCO B: FLUXO E ESPERA (COM FILTROS DINÂMICOS E D-11 DETALHADO) -->
+    <section class="section">
+      <div class="section-title">
+        <span>B. FLUXO DE CHAMADOS E ESPERA (D-07 A D-12)</span>
+        <span class="badge" id="period-badge-b">Período: Últimos 30 Dias</span>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card card-interactive" onclick="openDrilldownModal('d07')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-07 · Conversas Novas (Entradas)</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-07">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-07 · Conversas Novas (Entradas)</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Total bruto de novas conversas abertas por usuárias no período selecionado.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Data de criação (`created_at`) compreendida no intervalo ativo (Fuso BRT).</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Base volumétrica para dimensionamento da capacidade operacional.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d07-value">0</div>
+          <div class="card-subtext">Total de novas conversas no período</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d09')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-09 · Meta de 10 min (Cumprimento SLA)</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-09">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-09 · Meta de 10 min (Cumprimento SLA)</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Percentual de primeiras respostas humanas enviadas em até 10 minutos úteis.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Janela útil (09h-18h seg-sex). Criados fora da janela contam a partir das 09h do dia útil seguinte.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">&gt;= 85% de cumprimento no 1º turno.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d09-value">0%</div>
+          <div class="card-subtext">% da 1ª resposta humana &le; 10 min atendíveis</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d08_med')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-08 · Mediana da 1ª Resposta</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-08 Mediana">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-08 · Mediana da 1ª Resposta</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Tempo mediano que uma cliente aguardou pelo primeiro retorno humano.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Mediana (P50) em minutos comerciais úteis BRT (09:00 às 18:00, seg a sex).</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Mediana &lt;= 10 minutos úteis.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d08-median">0 min</div>
+          <div class="card-subtext">Tempo mediano de resposta em janela comercial</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d08_p90')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-08 · P90 da 1ª Resposta</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-08 P90">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-08 · P90 da 1ª Resposta</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Tempo máximo de espera tolerado por 90% das clientes no primeiro contato.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Percentil 90 em minutos comerciais BRT (ignora noites e feriados).</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">P90 &lt;= 45 minutos úteis.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d08-p90">0 min</div>
+          <div class="card-subtext">90% das usuárias esperaram até este tempo</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d10')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-10 · Espera Respostas Seguintes</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-10">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-10 · Espera Respostas Seguintes</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Tempo mediano de espera das clientes nos turnos de conversa 2 em diante.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Minutos comerciais BRT entre réplica do cliente e tréplica do atendente.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Mediana &lt;= 15 minutos úteis.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d10-median">0 min</div>
+          <div class="card-subtext">Mediana dos turnos 2 em diante</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d12')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-12 · Demanda Fora da Janela</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-12">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-12 · Demanda Fora da Janela</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Percentual de chamados iniciados à noite, madrugada ou fins de semana.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Total fora de 09h-18h seg a sex dividido pelo total de novos criados.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Monitorar sobrecarga noturna para dimensionamento de IA/plantão.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d12-value">0%</div>
+          <div class="card-subtext" id="d12-subtext">Total fora do expediente: 0 (Red: 0)</div>
+        </div>
+      </div>
+
+      <!-- D-11: ENTRADA CONTRA SAÍDA (DETALHAMENTO OBRIGATÓRIO DE RESOLUÇÃO MANUAL VS INATIVIDADE) -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <div class="card-label-wrap">
+            <h3 style="margin:0;">D-11 · Balanço de Entrada contra Saída (Vazão da Fila)</h3>
+            <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+              <button type="button" class="metric-info-btn" aria-label="Informações sobre D-11">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </button>
+              <div class="tooltip-bubble" role="tooltip">
+                <div class="tooltip-header">D-11 · Balanço Entrada vs Saída</div>
+                <div class="tooltip-section">
+                  <span class="tooltip-label">O que mede:</span>
+                  <span class="tooltip-desc">Vazão da operação: chamados novos criados vs chamados encerrados.</span>
+                </div>
+                <div class="tooltip-section">
+                  <span class="tooltip-label">Cálculo & Fuso:</span>
+                  <span class="tooltip-desc">Decompõe saídas em resoluções manuais por agentes vs timeout automático de 3 dias.</span>
+                </div>
+                <div class="tooltip-section">
+                  <span class="tooltip-label">Meta / Benchmark:</span>
+                  <span class="tooltip-desc tooltip-meta">Vazão &gt;= 100% e taxa de resolução manual &gt; 80%.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="badge-click" onclick="openDrilldownModal('d11')">Inspeção Geral</span>
+        </div>
+        <p class="chart-subtitle">Decomposição das saídas: Resolução Manual por Atendentes (Usuários do Sistema) vs Encerramento Automático por Inatividade de 3 dias</p>
+
+        <div style="margin-top: 1.25rem;">
+          <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.25rem;">
+            <div class="card card-info card-interactive" onclick="openDrilldownModal('d11_created')">
+              <div class="card-header-flex">
+                <span class="card-label">Novos Criados (Entrada)</span>
+                <span class="badge-click">Ver Lista</span>
+              </div>
+              <div class="card-value" id="d11-created">0</div>
+              <span class="card-subtext">Entrada bruta de conversas</span>
+            </div>
+            <div class="card card-success card-interactive" onclick="openDrilldownModal('d11_manual')">
+              <div class="card-header-flex">
+                <span class="card-label">Resolvidos Manualmente (Humano)</span>
+                <span class="badge-click">Ver Lista</span>
+              </div>
+              <div class="card-value" id="d11-manual">0</div>
+              <span class="card-subtext">Atendimento realizado por usuário do sistema</span>
+            </div>
+            <div class="card card-warning card-interactive" onclick="openDrilldownModal('d11_inactivity')">
+              <div class="card-header-flex">
+                <span class="card-label">Resolvidos por Inatividade (3 dias)</span>
+                <span class="badge-click">Ver Lista</span>
+              </div>
+              <div class="card-value" id="d11-inactivity">0</div>
+              <span class="card-subtext">Higienização automática de fila (Sem resposta)</span>
+            </div>
+            <div class="card card-interactive" id="d11-balance-card" onclick="openDrilldownModal('d11_balance')">
+              <div class="card-header-flex">
+                <span class="card-label">Saldo Líquido da Fila</span>
+                <span class="badge-click">Ver Lista</span>
+              </div>
+              <div class="card-value" id="d11-balance-val">+0</div>
+              <span class="card-subtext" id="d11-balance-sub">Variação no estoque da fila</span>
+            </div>
+          </div>
+
+          <!-- Barras de Saída Empilhadas -->
+          <div class="progress-label-grid">
+            <span><strong>Resolução Manual por Atendente (Trabalho Efetivo)</strong>: <span id="d11-manual-pct">0%</span></span>
+            <span><strong>Encerramento Automático por Inatividade (Limpeza)</strong>: <span id="d11-inactivity-pct">0%</span></span>
+          </div>
+          <div class="stacked-bar">
+            <div class="bar-segment bar-green" id="d11-manual-bar" style="width: 0%"></div>
+            <div class="bar-segment bar-yellow" id="d11-inactivity-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCO C: TURNO DA AGENTE (ACOMPANHAMENTO DIÁRIO) -->
+    <section class="section">
+      <div class="section-title">
+        <span>C. TURNO DA AGENTE (D-13 A D-16)</span>
+        <span class="badge" id="period-badge-c">Período: Últimos 30 Dias</span>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card card-interactive" onclick="openDrilldownModal('d13')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label" id="lbl-d13">D-13 · Latência de Abertura</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-13">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-13 · Latência de Abertura</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Tempo até a primeira resposta humana do dia ser enviada após as 09:00 BRT.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Diferença em minutos entre 09:00:00 BRT e o timestamp do primeiro envio humano.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">&lt; 15 min (iniciar operação até 09:15 BRT).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d13-latency">0 min</div>
+          <div class="card-subtext" id="sub-d13">Tempo até a 1ª resposta humana do dia (após 09:00 BRT)</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d14')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-14 · Fila Herdada & Zeragem</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-14">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-14 · Fila Herdada & Zeragem</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Chamados acumulados na noite anterior pendentes às 09h e tempo para zerá-los.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Chamados abertos com `created_at &lt; 09:00` e horário em que a fila zera.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Zerar a fila herdada antes das 11:00 BRT.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d14-value">0 tks</div>
+          <div class="card-subtext" id="d14-subtext">Fila às 09:00h | Tempo para zerar: --h--m</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d15')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label" id="lbl-d15">D-15 · Horário do Último Envio</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-15">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-15 · Horário do Último Envio</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Horário exato da última resposta enviada por um atendente antes do fechamento.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Timestamp máximo de mensagens humanas enviadas antes de 18:00 BRT.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Atendimento ativo até as 18:00 BRT.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d15-time">--:--</div>
+          <div class="card-subtext" id="sub-d15">Última resposta enviada antes das 18:00 BRT</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d16')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-16 · Maior Hiato Ocioso</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-16">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-16 · Maior Hiato Ocioso</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Maior intervalo durante o expediente sem mensagens enviadas havendo chamados na fila.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Gap máximo entre mensagens consecutivas das 09h às 18h BRT.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">&lt;= 30 min sem atendimentos com fila ativa.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d16-value">0 min</div>
+          <div class="card-subtext" id="d16-subtext">Maior pausa sem envios com fila pendente</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCO D: ATENDIMENTO BOT E IA -->
+    <section class="section">
+      <div class="section-title">
+        <span>D. DESEMPENHO DO BOT E IA (D-17)</span>
+        <span class="badge" id="period-badge-d">Período: Últimos 30 Dias</span>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card card-interactive" onclick="openDrilldownModal('d17_total')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-17 · Atendidos pelo Bot</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre D-17 Total">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-17 · Atendidos pelo Bot</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Total de conversas iniciadas com processamento automático pelo bot/IA.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Conversas com interação de bot registradas no período ativo (BRT).</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Base de triagem automatizada da operação.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d17-total">0</div>
+          <div class="card-subtext">Conversas iniciadas via Bot de Atendimento</div>
+        </div>
+
+        <div class="card card-success card-interactive" onclick="openDrilldownModal('d17_containment')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-17 · Taxa de Contenção Bot</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre Contenção Bot">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble" role="tooltip">
+                  <div class="tooltip-header">D-17 · Taxa de Contenção Bot</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Percentual de chamados resolvidos 100% pelo bot sem intervenção humana.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Total contido pelo bot dividido pelo total de conversas atendidas pelo bot.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">&gt;= 20% de contenção em autosserviço.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d17-contencao">0%</div>
+          <div class="card-subtext">Resolvidos 100% pelo Bot sem intervenção humana</div>
+        </div>
+
+        <div class="card card-warning card-interactive" onclick="openDrilldownModal('d17_handover')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-17 · Transbordo p/ Humano</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre Transbordo Bot">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-17 · Transbordo p/ Humano</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Percentual de contatos em que o bot não concluiu a dúvida e direcionou à fila.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Chamados encaminhados para atendente humano pós-bot.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Oportunidades de refino dos fluxos da IA.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d17-transbordo">0%</div>
+          <div class="card-subtext">Geraram fila de atendimento para a equipe</div>
+        </div>
+
+        <div class="card card-interactive" onclick="openDrilldownModal('d17_inherited')">
+          <div class="card-header-flex">
+            <div class="card-label-wrap">
+              <span class="card-label">D-17 · Fila Herdada do Bot</span>
+              <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
+                <button type="button" class="metric-info-btn" aria-label="Informações sobre Fila Herdada Bot">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+                <div class="tooltip-bubble align-right" role="tooltip">
+                  <div class="tooltip-header">D-17 · Fila Herdada do Bot</div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">O que mede:</span>
+                    <span class="tooltip-desc">Clientes que falaram com o bot fora do expediente e ficaram na fila das 09h.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Cálculo & Fuso:</span>
+                    <span class="tooltip-desc">Contatos noturnos não contidos pelo bot aguardando atendimento matutino.</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <span class="tooltip-label">Meta / Benchmark:</span>
+                    <span class="tooltip-desc tooltip-meta">Pronta resposta humana logo no início do dia.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="badge-click">Ver Lista</span>
+          </div>
+          <div class="card-value" id="d17-herdada">0</div>
+          <div class="card-subtext">Atendidos pelo Bot à noite e aguardando às 09:00h</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTE 3: RELATÓRIO SEMANAL DE SUPORTE (RS-01 A RS-14 COMPLETO) -->
+    <section class="section">
+      <div class="section-title">
+        <span>PARTE 3 · RELATÓRIO DE SUPORTE (RS-01 A RS-14 INTEGRAL)</span>
+        <span class="badge" id="period-badge-p3">Período: Últimos 30 Dias</span>
+      </div>
+
+      <!-- RS-12: BLOCO DE TOPO DEDICADO - CONTESTAÇÃO E FALSO NEGATIVO -->
+      <div class="card card-danger chart-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3>RS-12 · Contestações de Relatório & Indícios de Falso Negativo <span class="badge-click" onclick="openDrilldownModal('rs12')" style="margin-left: 0.5rem; cursor: pointer;">Ver Lista</span></h3>
+            <p class="chart-subtitle">Bloco executivo obrigatoriamente posicionado no topo do relatório (Sem misturar com a tabela de motivos)</p>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <span class="badge badge-warning" id="rs12-contest-badge" onclick="openDrilldownModal('rs12')" style="cursor: pointer;">Contestações: 0</span>
+            <span class="badge" style="background: rgba(248,113,113,0.2); color: var(--accent-red); border-color: var(--accent-red); cursor: pointer;" id="rs12-falso-badge" onclick="openDrilldownModal('rs12')">Falso Negativo: 0</span>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);" id="rs12-list-content">
+          Nenhuma contestação ou falso negativo registrado na janela selecionada.
+        </div>
+      </div>
+
+      <!-- RS-01: VOLUME E MAPA DE CALOR 7X24 -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <h3>RS-01 · Volume Semanal & Mapa de Calor (7 Dias x 24 Horas)</h3>
+          <span class="badge-click" onclick="openDrilldownModal('rs01')">Ver Lista</span>
+        </div>
+        <p class="chart-subtitle">Distribuição temporal de chegada de conversas com marcação da Janela Comercial (09:00 - 18:00 Seg-Sex)</p>
+        
+        <div style="margin-top: 1rem; overflow-x: auto;">
+          <table class="data-table" style="font-size: 0.75rem; text-align: center;">
+            <thead>
+              <tr>
+                <th>Dia / Hora</th>
+                <th>00h-04h</th>
+                <th>04h-08h</th>
+                <th>09h-12h (Comercial)</th>
+                <th>12h-15h (Comercial)</th>
+                <th>15h-18h (Comercial)</th>
+                <th>18h-21h</th>
+                <th>21h-24h</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-heatmap">
+              <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RS-02: ASSUNTOS POR MOTIVO -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <h3>RS-02 · Concentração de Assuntos por Motivo</h3>
+          <span class="badge-click" onclick="openDrilldownModal('rs02')">Ver Lista</span>
+        </div>
+        <p class="chart-subtitle">Classificação por tag de motivo, volume e tempos mediano de resposta e resolução. Categorias `(ausente)` e `(múltiplo)` no topo.</p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Etiqueta de Motivo</th>
+              <th>Volume (Qtd)</th>
+              <th>% do Total</th>
+              <th>Delta Semanal</th>
+              <th>Mediana Espera (min)</th>
+              <th>Mediana Resolução (min)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-reasons">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Carregando dados...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RS-03: MOTIVO CRUZADO COM SEVERIDADE (AUDITORIA DE ETIQUETAGEM) -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <h3>RS-03 · Matriz Cruzada: Motivo vs. Severidade (Auditoria)</h3>
+          <span class="badge-click" onclick="openDrilldownModal('rs03')">Ver Lista</span>
+        </div>
+        <p class="chart-subtitle">Cruzamento para identificação de etiquetas divergentes (Ex: Dúvida funcional marcada como `sev-red` P0)</p>
+
+        <table class="data-table" style="font-size: 0.82rem;">
+          <thead>
+            <tr>
+              <th>Etiqueta de Motivo</th>
+              <th>P0 / `sev-red` (Risco)</th>
+              <th>P1 / `sev-yellow` (Erro)</th>
+              <th>P2-P3 / `sev-green` (Dúvida/Feedback)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rs03-matrix">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RS-04 E RS-05: QUADRO COMPARATIVO DE ESPERA E DETALHAMENTO DE RESOLUÇÃO -->
+      <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+        <!-- RS-04: ESPERA ATENDÍVEL VS CORRIDA -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-04 · Espera Atendível vs. Espera Corrida</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs04')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">Performance da equipe (Atendível) vs Experiência sentida pela usuária (Corrida 24x7)</p>
+          
+          <table class="data-table" style="margin-top: 0.85rem;">
+            <thead>
+              <tr>
+                <th>Métrica</th>
+                <th>Espera Atendível</th>
+                <th>Espera Corrida</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Média</strong></td><td id="rs04-avg-biz">—</td><td id="rs04-avg-raw">—</td></tr>
+              <tr><td><strong>Mediana</strong></td><td id="rs04-med-biz">—</td><td id="rs04-med-raw">—</td></tr>
+              <tr><td><strong>P90</strong></td><td id="rs04-p90-biz">—</td><td id="rs04-p90-raw">—</td></tr>
+              <tr><td><strong>% na Meta (&le; 10m)</strong></td><td id="rs04-meta-biz">—</td><td id="rs04-meta-raw">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- RS-05: SEPARAÇÃO DE RESOLUÇÃO MANUAL VS INATIVIDADE 3D -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-05 · Decomposição de Resolução e Reaberturas</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs05')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">Resoluções Manuais por Atendentes vs Encerramentos Automáticos por Inatividade</p>
+
+          <table class="data-table" style="margin-top: 0.85rem;">
+            <thead>
+              <tr>
+                <th>Tipo de Encerramento</th>
+                <th>Volume</th>
+                <th>% Total</th>
+                <th>Mediana Tempo</th>
+                <th>P90 Tempo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Encerramento Manual (Humano)</strong></td>
+                <td id="rs05-manual-count">—</td>
+                <td id="rs05-manual-pct">—</td>
+                <td id="rs05-manual-med">—</td>
+                <td id="rs05-manual-p90">—</td>
+              </tr>
+              <tr>
+                <td><strong>Inatividade Automática (3 dias)</strong></td>
+                <td id="rs05-inact-count">—</td>
+                <td id="rs05-inact-pct">—</td>
+                <td>N/A (&ge; 72h)</td>
+                <td>N/A (&ge; 72h)</td>
+              </tr>
+              <tr>
+                <td><strong>Reaberturas de Conversas</strong></td>
+                <td id="rs05-reopen-count">—</td>
+                <td colspan="3" style="color: var(--text-muted);">Conversas resolvidas que voltaram a ter entrada</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RS-06: Espera Evitável vs. Estrutural -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <h3>RS-06 · Distribuição de Espera: Evitável vs. Estrutural</h3>
+          <span class="badge-click" onclick="openDrilldownModal('rs06')">Ver Lista</span>
+        </div>
+        <p class="chart-subtitle">Decomposição do tempo de fila da usuária em janela comercial (Evitável) vs. fora do expediente (Estrutural)</p>
+
+        <div style="margin-top: 1.5rem;">
+          <div class="progress-label-grid">
+            <span><strong>Espera Evitável (Horário Comercial)</strong>: <span id="rs06-avoidable-text">0%</span> (<span id="rs06-avoidable-hrs">0h</span>)</span>
+            <span><strong>Espera Estrutural (Fora de Expediente)</strong>: <span id="rs06-structural-text">0%</span> (<span id="rs06-structural-hrs">0h</span>)</span>
+          </div>
+          <div class="stacked-bar">
+            <div class="bar-segment bar-orange" id="rs06-avoidable-bar" style="width: 0%"></div>
+            <div class="bar-segment bar-purple" id="rs06-structural-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RS-07 E RS-08: ESTOQUE E PAINEL DE ALARMES -->
+      <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+        <!-- RS-07: ESTOQUE CARREGADO -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-07 · Balanço de Estoque Carregado</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs07')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">Abertas na Sexta 00h + Criadas - Encerradas = Carregadas para a próxima semana</p>
+          <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem;">
+            <div class="cards-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="card" style="padding:0.75rem;"><span class="card-label">Abertura</span><div class="card-value" style="font-size:1.4rem;" id="rs07-opening">0</div></div>
+              <div class="card" style="padding:0.75rem;"><span class="card-label">Carregadas</span><div class="card-value" style="font-size:1.4rem; color:var(--accent-yellow);" id="rs07-carried">0</div></div>
+            </div>
+            <p style="font-size:0.82rem; color:var(--text-muted);">Das <strong id="rs07-carried-inline">0</strong> carregadas, <strong id="rs07-over7d">0 conversas possuem</strong> mais de 7 dias de idade.</p>
+          </div>
+        </div>
+
+        <!-- RS-08: PAINEL DE ALARMES EXECUTIVOS -->
+        <div class="card chart-card card-danger">
+          <div class="card-header-flex">
+            <h3>RS-08 · Painel de Alarmes Semanais</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs08')">Auditar</span>
+          </div>
+          <p class="chart-subtitle">4 categorias de inconformidade operacional crítica</p>
+          <div class="cards-grid" style="grid-template-columns: 1fr 1fr; margin-top:0.85rem;">
+            <div class="card card-interactive" onclick="openDrilldownModal('d05')" style="padding:0.6rem;"><span class="card-label">Sem Atendimento</span><div class="card-value" style="font-size:1.2rem; color:var(--accent-red);" id="rs08-sem-atendimento">0</div></div>
+            <div class="card card-interactive" onclick="openDrilldownModal('d03')" style="padding:0.6rem;"><span class="card-label">Red Estourado (Janela)</span><div class="card-value" style="font-size:1.2rem; color:var(--accent-red);" id="rs08-red-janela">0</div></div>
+            <div class="card card-interactive" onclick="openDrilldownModal('d12')" style="padding:0.6rem;"><span class="card-label">Red Estourado (Fora)</span><div class="card-value" style="font-size:1.2rem; color:var(--accent-yellow);" id="rs08-red-fora">0</div></div>
+            <div class="card card-interactive" onclick="openDrilldownModal('d04')" style="padding:0.6rem;"><span class="card-label">Acima de 72 Horas</span><div class="card-value" style="font-size:1.2rem; color:var(--accent-orange);" id="rs08-acima-72h">0</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RS-09, RS-10, RS-11: HANDOFF, 1-TOQUE E REINCIDÊNCIA -->
+      <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <!-- RS-09: HANDOFF EXTERNO -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-09 · Handoff Externo por Área</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs09')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">Resoluções por área (Engenharia, Gabi, Mariana)</p>
+          <table class="data-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr><th>Área</th><th>Motivo</th><th>Qtd</th><th>Mediana Dias</th></tr>
+            </thead>
+            <tbody id="tbody-handoff">
+              <tr><td colspan="4" style="text-align: center;">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- RS-10: RESOLVIDAS EM 1 TOQUE -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-10 · Resolvidas em 1 Toque (FCR)</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs10')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">% encerradas com 1 única resposta de saída</p>
+          <table class="data-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr><th>Motivo</th><th>1-Toque %</th><th>Total Resolvidos</th></tr>
+            </thead>
+            <tbody id="tbody-fcr">
+              <tr><td colspan="3" style="text-align: center;">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- RS-11: REINCIDÊNCIA -->
+        <div class="card chart-card">
+          <div class="card-header-flex">
+            <h3>RS-11 · Taxa de Reincidência</h3>
+            <span class="badge-click" onclick="openDrilldownModal('rs11')">Ver Lista</span>
+          </div>
+          <p class="chart-subtitle">Contatos com &gt;1 chamado em 7d e 30d</p>
+          <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.75rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem;"><span>Reincidência 7 Dias:</span><strong style="color:var(--accent-orange)" id="rs11-7d">0%</strong></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem;"><span>Reincidência 30 Dias:</span><strong id="rs11-30d">0%</strong></div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-top:0.4rem;">Principal motivo de retorno: <code id="rs11-top-reason">(sem dado)</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RS-13: PERFORMANCE DO BOT & WHITELIST -->
+      <div class="card chart-card">
+        <div class="card-header-flex">
+          <h3>RS-13 · Consolidação do Bot & Fila de Expansão da Whitelist</h3>
+          <span class="badge-click" onclick="openDrilldownModal('rs13')">Ver Lista</span>
+        </div>
+        <p class="chart-subtitle">Top 5 assuntos de transbordo sem solução do bot que devem virar novos artigos/regras</p>
+        <table class="data-table" style="font-size: 0.82rem;">
+          <thead>
+            <tr><th>Assunto / Motivo de Transbordo</th><th>Qtd Transbordos</th></tr>
+          </thead>
+          <tbody id="tbody-bot-handover">
+            <tr><td colspan="2" style="text-align: center;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RS-14: NOTAS DA REUNIÃO DE SUPORTE -->
+      <div class="card chart-card">
+        <h3>RS-14 · Notas da Reunião de Suporte & Diagnóstico Qualitativo</h3>
+        <p class="chart-subtitle">Pauta executiva de acompanhamento semanal do time de atendimento</p>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">1. Três recorrências que não são problema de suporte (Área & Dono):</label>
+            <textarea id="rs14-block1" rows="3" class="input-textarea" placeholder="Descreva os 3 temas recorrentes e as áreas responsáveis..."></textarea>
+          </div>
+
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">2. Um caso que exigiu improviso, e o que falta no playbook:</label>
+            <textarea id="rs14-block2" rows="3" class="input-textarea" placeholder="Descreva o caso atípico e a melhoria de processo necessária..."></textarea>
+          </div>
+
+          <div>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">3. Uma frase dita a uma usuária que não deveria ter sido dita:</label>
+            <textarea id="rs14-block3" rows="3" class="input-textarea" placeholder="Registre o desalinhamento de comunicação para alinhamento de equipe..."></textarea>
+          </div>
+
+          <button class="period-btn active" style="align-self: flex-start;" onclick="saveQualitativeNotes(event)">Salvar Anotações Executivas</button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL DE DRILL-DOWN / INSPEÇÃO GRANULAR DE CHAMADOS -->
+  <div id="drilldown-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-title">Inspeção Granular de Chamados</h3>
+          <p id="modal-subtitle">Detalhamento individual dos tickets da fila</p>
+        </div>
+        <button class="modal-close-btn" onclick="closeDrilldownModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID Ticket</th>
+              <th>Usuária / Cliente</th>
+              <th>Canal</th>
+              <th>Entrada</th>
+              <th>Espera Atendível</th>
+              <th>Prioridade / Tag</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="modal-tbody">
+            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Carregando chamados...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuração Dinâmica de Runtime (Supabase) -->
+  <script src="config.js"></script>
+  <script src="src/dashboard.js"></script>
+</body>
+</html>

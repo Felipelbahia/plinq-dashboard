@@ -1,0 +1,32 @@
+{
+  "name": "plinq-support-dashboard",
+  "version": "3.0.0",
+  "description": "Dashboard Operacional e Relatório de Suporte v3.0 - Plinq",
+  "private": true,
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "dev": "node scripts/generate-config.js && npx serve -p 3000 .",
+    "build": "node scripts/generate-config.js",
+    "start": "npx serve -p 3000 .",
+    "test:security": "node scripts/security-audit-and-attacks.js"
+  },
+  "keywords": [
+    "dashboard",
+    "support",
+    "cx",
+    "metrics",
+    "supabase",
+    "chatwoot",
+    "realtime",
+    "vercel"
+  ],
+  "author": "Plinq",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
