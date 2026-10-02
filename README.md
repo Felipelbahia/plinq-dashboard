@@ -8,6 +8,10 @@
 
 > Aplicação web de **monitoramento em tempo real da operação de atendimento e suporte da Plinq**, desenvolvida sobre a Tríade (Chatwoot, Supabase e N8N). Conta com fila viva 24x7, barramento de filtros globais combinados, cálculo de espera atendível em janela comercial (09h às 18h BRT), métricas de CX (CSAT/NPS), taxonomia de etiquetas e pauta executiva semanal.
 
+
+> **Atualização de 2026-10-02:** o dashboard agora lê **conversas** (id da conversa do Chatwoot), não tickets — e a **severidade é a prioridade nativa do Chatwoot** (Urgente/Alta/Média/Baixa/Nenhuma). Onde este README fala em "chamado/ticket", leia "conversa"; onde fala em P0/P1/P2/P3, leia a prioridade nativa. Detalhes em `../../documentacao/detalhamento/13-dashboard-por-conversa.md` e `sql/README.md` (scripts 13–21).
+
+
 ---
 
 ## 🚀 Deploy em 1 Clique na Vercel

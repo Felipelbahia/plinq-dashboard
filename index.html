@@ -340,20 +340,20 @@
           <div class="card-subtext">Aguardando resposta do cliente</div>
         </div>
 
-        <!-- D-03: Alerta Red >10 min -->
+        <!-- D-03: Alerta Urgente >10 min -->
         <div class="card card-success card-interactive" id="d03-card" onclick="openDrilldownModal('d03')">
           <div class="card-header-flex">
             <div class="card-label-wrap">
-              <span class="card-label">D-03 · Alerta Red (&gt; 10 min)</span>
+              <span class="card-label">D-03 · Alerta Urgente (&gt; 10 min)</span>
               <div class="metric-tooltip-wrapper" onclick="event.stopPropagation()">
                 <button type="button" class="metric-info-btn" aria-label="Informações sobre D-03">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 </button>
                 <div class="tooltip-bubble" role="tooltip">
-                  <div class="tooltip-header">D-03 · Alerta Red (&gt; 10 min)</div>
+                  <div class="tooltip-header">D-03 · Alerta Urgente (&gt; 10 min)</div>
                   <div class="tooltip-section">
                     <span class="tooltip-label">O que mede:</span>
-                    <span class="tooltip-desc">Chamados de prioridade crítica (P0 / sev-red) que ultrapassaram 10 min sem resposta.</span>
+                    <span class="tooltip-desc">Conversas com prioridade Urgente (campo Prioridade nativo do Chatwoot) que ultrapassaram 10 min sem resposta humana.</span>
                   </div>
                   <div class="tooltip-section">
                     <span class="tooltip-label">Cálculo & Fuso:</span>
@@ -369,7 +369,7 @@
             <span class="badge-click">Ação Imediata</span>
           </div>
           <div class="card-value" id="d03-value">0</div>
-          <div class="card-subtext">Prioridade P0 / `sev-red` sem resposta humana</div>
+          <div class="card-subtext">Prioridade Urgente (Chatwoot) sem resposta humana</div>
         </div>
 
         <!-- D-05: Sem Atendimento Nenhum -->
@@ -417,11 +417,11 @@
                   <div class="tooltip-header">D-06 · Adesão à Taxonomia (%)</div>
                   <div class="tooltip-section">
                     <span class="tooltip-label">O que mede:</span>
-                    <span class="tooltip-desc">Percentual de chamados classificados com etiquetas oficiais de Severidade e Motivo.</span>
+                    <span class="tooltip-desc">Percentual de conversas abertas com ao menos uma etiqueta oficial de Motivo.</span>
                   </div>
                   <div class="tooltip-section">
                     <span class="tooltip-label">Cálculo & Fuso:</span>
-                    <span class="tooltip-desc">Total com etiquetas válidas dividido pelo total de chamados elegíveis.</span>
+                    <span class="tooltip-desc">Conversas abertas com etiqueta de motivo dividido pelo total de conversas abertas.</span>
                   </div>
                   <div class="tooltip-section">
                     <span class="tooltip-label">Meta / Benchmark:</span>
@@ -433,7 +433,7 @@
             <span class="badge-click">Auditar</span>
           </div>
           <div class="card-value" id="d06-value">—</div>
-          <div class="card-subtext" id="d06-subtext">Taxonomia de etiquetas (Severidade + Motivo)</div>
+          <div class="card-subtext" id="d06-subtext">Taxonomia de etiquetas (etiqueta de Motivo)</div>
         </div>
       </div>
 
@@ -1143,15 +1143,15 @@
           <h3>RS-03 · Matriz Cruzada: Motivo vs. Severidade (Auditoria)</h3>
           <span class="badge-click" onclick="openDrilldownModal('rs03')">Ver Lista</span>
         </div>
-        <p class="chart-subtitle">Cruzamento para identificação de etiquetas divergentes (Ex: Dúvida funcional marcada como `sev-red` P0)</p>
+        <p class="chart-subtitle">Cruzamento do motivo com a prioridade nativa do Chatwoot para achar divergências (Ex.: dúvida funcional marcada como Urgente)</p>
 
         <table class="data-table" style="font-size: 0.82rem;">
           <thead>
             <tr>
               <th>Etiqueta de Motivo</th>
-              <th>P0 / `sev-red` (Risco)</th>
-              <th>P1 / `sev-yellow` (Erro)</th>
-              <th>P2-P3 / `sev-green` (Dúvida/Feedback)</th>
+              <th>Urgente</th>
+              <th>Alta</th>
+              <th>Média · Baixa · Nenhuma</th>
               <th>Total</th>
             </tr>
           </thead>
@@ -1387,8 +1387,8 @@
     <div class="modal-content">
       <div class="modal-header">
         <div>
-          <h3 id="modal-title">Inspeção Granular de Chamados</h3>
-          <p id="modal-subtitle">Detalhamento individual dos tickets da fila</p>
+          <h3 id="modal-title">Inspeção Granular de Conversas</h3>
+          <p id="modal-subtitle">Detalhamento individual das conversas (id do Chatwoot)</p>
         </div>
         <button class="modal-close-btn" onclick="closeDrilldownModal()">&times;</button>
       </div>
@@ -1397,18 +1397,18 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID Ticket</th>
+              <th>ID Conversa</th>
               <th>Usuária / Cliente</th>
               <th>Canal</th>
               <th>Entrada</th>
               <th>Espera Atendível</th>
-              <th>Prioridade / Tag</th>
+              <th>Severidade (Chatwoot)</th>
               <th>Status</th>
               <th>Ação</th>
             </tr>
           </thead>
           <tbody id="modal-tbody">
-            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Carregando chamados...</td></tr>
+            <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Carregando conversas...</td></tr>
           </tbody>
         </table>
       </div>

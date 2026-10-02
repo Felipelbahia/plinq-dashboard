@@ -613,11 +613,13 @@ async function loadTagDirectory() {
 }
 
 function initStaticFilters() {
+  // Severidade = prioridade NATIVA do Chatwoot (campo Prioridade da conversa), não o P0-P3 da triagem
   msInit('severity', [
-    { value: 'P0', label: 'P0 / Red (Risco Churn/Cobrança)' },
-    { value: 'P1', label: 'P1 / Yellow (Erro Login/Consulta)' },
-    { value: 'P2', label: 'P2 / Green (Dúvidas de Recursos)' },
-    { value: 'P3', label: 'P3 / Green (Feedback/Elogios)' }
+    { value: 'urgent', label: 'Urgente' },
+    { value: 'high', label: 'Alta' },
+    { value: 'medium', label: 'Média' },
+    { value: 'low', label: 'Baixa' },
+    { value: 'none', label: 'Nenhuma' }
   ], { type: 'text', allLabel: 'Todas as Severidades' });
 
   msInit('origin', [
@@ -626,8 +628,8 @@ function initStaticFilters() {
   ], { type: 'text', allLabel: 'Todos (Humano + Bot)' });
 
   msInit('taxonomy', [
-    { value: 'valid', label: 'Com Taxonomia Válida (2 Tags)' },
-    { value: 'missing', label: 'Com Taxonomia Ausente / Incompleta' }
+    { value: 'valid', label: 'Com etiqueta de Motivo' },
+    { value: 'missing', label: 'Sem etiqueta de Motivo' }
   ], { type: 'text', allLabel: 'Todas as Conversas' });
 }
 
@@ -729,7 +731,7 @@ async function renderBlocoA() {
   document.getElementById("d06-value").innerText = adherence === null || adherence === undefined ? 'sem dado' : `${adherence}%`;
   document.getElementById("d06-subtext").innerText = (adherence !== null && adherence !== undefined && adherence < 95)
     ? `Atenção: Apenas ${adherence}% dos chamados contêm as 2 tags obrigatórias.`
-    : (adherence === null || adherence === undefined ? "Sem tickets na fila para calcular adesão." : "Excelente: Meta de adesão (≥ 95%) cumprida.");
+    : (adherence === null || adherence === undefined ? "Sem conversas na fila para calcular adesão." : "Excelente: Meta de adesão (≥ 95%) cumprida.");
   d06Card.className = (adherence !== null && adherence !== undefined && adherence < 95) ? "card card-warning" : "card card-info";
 
   const badgeTop = document.getElementById("badge-adherence-top");
@@ -1113,92 +1115,36 @@ async function openDrilldownModal(type) {
   modal.style.display = "flex";
   tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Carregando chamados reais do Supabase...</td></tr>`;
 
-  const qs = new URLSearchParams({ select: '*', order: 'created_at.desc', limit: '300' });
-  const inboxIds = msGetParam('channel');
-  if (inboxIds) qs.set('chatwoot_inbox_id', `in.(${inboxIds.join(',') || 'null'})`);
-  const severities = msGetParam('severity');
-  if (severities) qs.set('priority', `in.(${severities.join(',') || 'null'})`);
-  const agentIds = msGetParam('agent');
-  if (agentIds) qs.set('current_agent_id', `in.(${agentIds.join(',') || 'null'})`);
-  const teamIds = msGetParam('team');
-  if (teamIds) qs.set('current_team_id', `in.(${teamIds.join(',') || 'null'})`);
-
-  const res = await fetchView(`suporteapp_tickets?${qs.toString()}`);
+  // Conversas vêm da RPC (unidade = id da conversa do Chatwoot). Canal/agente/time/severidade/origem/taxonomia/tag/
+  // expediente/fim de semana são aplicados NO SERVIDOR pelo mesmo escopo das métricas (suporteapp_fn_scope_conversations),
+  // então a lista sempre bate com os números do painel. Não devolve e-mail/telefone.
+  // cards de fila (D-01..D-06) só precisam de conversas não resolvidas: o filtro vai no servidor para o teto de
+  // 1.000 linhas do PostgREST nunca esconder uma conversa aberta antiga atrás de conversas recentes já resolvidas
+  const pedeFila = ['d01', 'd02', 'd03', 'd04', 'd05', 'd06'].includes(type);
+  const res = await fetchRPC("suporteapp_rpc_conversation_drilldown",
+    filterParams({ p_limit: 1500, ...(pedeFila ? { p_status: ['open', 'pending', 'snoozed'] } : {}) }));
   if (!res.ok) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--accent-red); padding: 2rem;">Erro ao carregar dados do Supabase: ${res.error}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--accent-red); padding: 2rem;">Erro ao carregar dados do Supabase: ${escapeHtml(res.error)}</td></tr>`;
     return;
   }
-  const tickets = res.data || [];
-
-  let scoped = tickets.map(t => ({
-    ...t,
-    queue_state: (t.last_customer_message_at && (!t.last_agent_message_at || t.last_customer_message_at > t.last_agent_message_at))
-      ? 'waiting_plinq' : 'waiting_customer'
+  // first_public_reply_at / last_agent_message_at abaixo = resposta HUMANA (agente), não bot — mesma regra das métricas
+  let scoped = (res.data || []).map(r => ({
+    chatwoot_conversation_id: r.conversation_id,
+    chatwoot_inbox_id: r.inbox_id,
+    customer_name: r.contact_name,
+    company_name: r.company_name,
+    status: r.status,
+    severity: r.severity || 'none',
+    created_at: r.created_at,
+    resolved_at: r.resolved_at,
+    resolution_type: r.resolution_type,
+    current_agent_name: r.current_agent_name,
+    current_labels: r.current_labels || [],
+    first_public_reply_at: r.first_human_reply_at,
+    last_customer_message_at: r.last_customer_message_at,
+    last_agent_message_at: r.last_human_message_at,
+    queue_state: r.queue_state
   }));
-
-  // 1. Filtro de Tags
-  const tagsParam = msGetParam('tag');
-  if (tagsParam && tagsParam.length > 0) {
-    scoped = scoped.filter(t => {
-      const labels = t.current_labels || [];
-      if (tagsParam.includes('__sem_tag__') && labels.length === 0) return true;
-      return labels.some(l => tagsParam.includes(l));
-    });
-  }
-
-  // 2. Filtro de Origem (Humano vs Bot)
-  const originsParam = msGetParam('origin');
-  if (originsParam && originsParam.length > 0) {
-    const hasHuman = originsParam.includes('human');
-    const hasBot = originsParam.includes('bot');
-    if (hasHuman && !hasBot) {
-      scoped = scoped.filter(t => t.current_agent_id !== 1);
-    } else if (hasBot && !hasHuman) {
-      scoped = scoped.filter(t => t.current_agent_id === 1);
-    }
-  }
-
-  // 3. Filtro de Taxonomia (Válida vs Ausente)
-  const taxParam = msGetParam('taxonomy');
-  if (taxParam && taxParam.length > 0) {
-    const sevTags = ['sev-red', 'sev-yellow', 'sev-green'];
-    const reasonTags = ['login-acesso','duvida-de-plano','erro-tecnico','app-fora-do-ar','reembolso','meus-dados-lgpd','pessoa-consultada','advogado-ou-autoridade'];
-    const wantValid = taxParam.includes('valid') && !taxParam.includes('missing');
-    const wantMissing = taxParam.includes('missing') && !taxParam.includes('valid');
-    if (wantValid || wantMissing) {
-      scoped = scoped.filter(t => {
-        const labels = t.current_labels || [];
-        const isValid = labels.some(l => sevTags.includes(l)) && labels.some(l => reasonTags.includes(l));
-        return wantValid ? isValid : !isValid;
-      });
-    }
-  }
-
-  // 4. Filtro de Horário Comercial (Início Fora do Expediente)
-  const bhFilter = document.getElementById('filter-business-hours')?.value;
-  if (bhFilter === 'only_outside' || bhFilter === 'exclude_outside') {
-    scoped = scoped.filter(t => {
-      if (!t.created_at) return true;
-      const spDate = new Date(new Date(t.created_at).toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-      const dow = spDate.getDay();
-      const hrs = spDate.getHours();
-      const isInside = (dow >= 1 && dow <= 5 && hrs >= 9 && hrs < 18);
-      return bhFilter === 'only_outside' ? !isInside : isInside;
-    });
-  }
-
-  // 5. Filtro de Fim de Semana
-  const weFilter = document.getElementById('filter-weekend')?.value;
-  if (weFilter === 'only_weekend' || weFilter === 'exclude_weekend') {
-    scoped = scoped.filter(t => {
-      if (!t.created_at) return true;
-      const spDate = new Date(new Date(t.created_at).toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-      const dow = spDate.getDay();
-      const hrs = spDate.getHours();
-      const isWeekend = (dow === 5 && hrs >= 18) || (dow === 6) || (dow === 0) || (dow === 1 && hrs < 9);
-      return weFilter === 'only_weekend' ? isWeekend : !isWeekend;
-    });
-  }
 
   // 6. Recorte de Período Temporal Ativo (exceto Bloco A que é fila viva em tempo real)
   const isQueueType = ['d01', 'd02', 'd03', 'd04', 'd05', 'd06'].includes(type);
@@ -1235,11 +1181,11 @@ async function openDrilldownModal(type) {
       filtered = scoped.filter(t => t.status === 'open' && t.queue_state === 'waiting_customer');
       break;
     case 'd03':
-      labelTitle = "🚨 D-03 · Alerta Red (> 10 min em Relógio Corrido 24x7)";
-      labelSub = "Chamados P0 de risco crítico sem resposta há mais de 10 minutos (Ação Imediata)";
+      labelTitle = "🚨 D-03 · Alerta Urgente (> 10 min em Relógio Corrido 24x7)";
+      labelSub = "Conversas com prioridade Urgente (Chatwoot) sem resposta humana há mais de 10 minutos (Ação Imediata)";
       filtered = scoped.filter(t => {
         if (t.status !== 'open' || t.queue_state !== 'waiting_plinq') return false;
-        const isRed = t.priority === 'P0' || (t.current_labels && t.current_labels.includes('sev-red'));
+        const isRed = t.severity === 'urgent';
         if (!isRed) return false;
         const refTime = t.last_customer_message_at ? new Date(t.last_customer_message_at) : (t.created_at ? new Date(t.created_at) : new Date());
         return (Date.now() - refTime.getTime()) / 60000 > 10;
@@ -1324,7 +1270,13 @@ async function openDrilldownModal(type) {
   }
 
   title.innerText = labelTitle;
-  subtitle.innerText = `${labelSub} (${filtered.length} chamados encontrados)`;
+  // o PostgREST limita a resposta a 1.000 linhas: avisa quando a lista pode estar truncada (mais antigas ficam de fora)
+  // só avisa quando o teto realmente corta a janela escolhida (a conversa mais antiga devolvida é mais nova que o início do período)
+  const rows = res.data || [];
+  const maisAntiga = rows.length ? rows.reduce((m, r) => (r.created_at && r.created_at < m ? r.created_at : m), rows[0].created_at) : null;
+  const cortaJanela = isQueueType ? true : (!activeRange || !maisAntiga || new Date(maisAntiga) > activeRange.start);
+  const truncado = rows.length >= 1000 && cortaJanela ? ' — lista limitada às 1.000 conversas mais recentes' : '';
+  subtitle.innerText = `${labelSub} (${filtered.length} chamados encontrados${truncado})`;
 
   if (!filtered || filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhum chamado encontrado para os critérios selecionados nesta janela.</td></tr>`;
@@ -1333,7 +1285,7 @@ async function openDrilldownModal(type) {
 
   tbody.innerHTML = filtered.map(t => {
     const rawConvId = t.chatwoot_conversation_id || t.id || "N/A";
-    const rawCustomerName = t.customer_name || t.customer_email || "Usuária Plinq";
+    const rawCustomerName = t.customer_name || "Contato sem nome";
     const rawChannel = channelLabelForInbox(t.chatwoot_inbox_id);
     const createdAt = t.created_at ? new Date(t.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
@@ -1352,9 +1304,10 @@ async function openDrilldownModal(type) {
       waitStr = diffMin > 60 ? `${Math.floor(diffMin / 60)}h ${diffMin % 60}m` : `${diffMin} min`;
     }
 
-    const priority = t.priority || '—';
-    const nativePriorityLabels = { none: 'Nenhuma', low: 'Baixa', medium: 'Média', high: 'Alta', urgent: 'Urgente' };
-    const nativePriority = nativePriorityLabels[t.chatwoot_native_priority] || nativePriorityLabels.none;
+    // severidade = prioridade NATIVA do Chatwoot
+    const severityLabels = { none: 'Nenhuma', low: 'Baixa', medium: 'Média', high: 'Alta', urgent: 'Urgente' };
+    const priority = severityLabels[t.severity] || severityLabels.none;
+    const isUrgent = t.severity === 'urgent';
     const isResolved = t.status === 'resolved';
     const resType = t.resolution_type === 'inactivity_3d' ? 'INATIVIDADE (3D)' : (t.resolution_type === 'bot_auto' ? 'BOT' : 'RESOLVIDO (MANUAL)');
     const statusLabel = isResolved ? resType : (t.queue_state === 'waiting_customer' ? 'AGUARDANDO USUÁRIA' : 'AGUARDANDO PLINQ');
@@ -1366,7 +1319,7 @@ async function openDrilldownModal(type) {
     const customerName = escapeHtml(rawCustomerName);
     const channel = escapeHtml(rawChannel);
     const safePriority = escapeHtml(priority);
-    const safeNativePriority = escapeHtml(nativePriority);
+    const safeCompany = t.company_name ? escapeHtml(t.company_name) : '';
     const safeStatusLabel = escapeHtml(statusLabel);
     const safeWaitStr = escapeHtml(waitStr);
     const safeUrlConvId = encodeURIComponent(rawConvId);
@@ -1374,13 +1327,12 @@ async function openDrilldownModal(type) {
     return `
       <tr>
         <td><strong>#${convId}</strong></td>
-        <td><strong style="color: var(--text-primary);">${customerName}</strong></td>
+        <td><strong style="color: var(--text-primary);">${customerName}</strong>${safeCompany ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">${safeCompany}</div>` : ''}</td>
         <td>${channel}</td>
         <td>${escapeHtml(createdAt)}</td>
-        <td><span style="color: ${priority === 'P0' ? 'var(--accent-red)' : 'var(--text-primary)'}">${safeWaitStr}</span></td>
+        <td><span style="color: ${isUrgent ? 'var(--accent-red)' : 'var(--text-primary)'}">${safeWaitStr}</span></td>
         <td>
-          <span class="badge ${priority === 'P0' ? 'badge-warning' : ''}">${safePriority}</span>
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">Chatwoot: ${safeNativePriority}</div>
+          <span class="badge ${isUrgent ? 'badge-warning' : ''}">${safePriority}</span>
         </td>
         <td><span class="badge" style="${statusBg}">${safeStatusLabel}</span></td>
         <td>

@@ -88,3 +88,24 @@ Caso esteja configurando uma nova instância do banco de dados no Supabase, exec
     - Toda a lógica de filtro comum foi extraída para `suporteapp_fn_scope_tickets(...)
       RETURNS SETOF suporteapp_tickets`, reaproveitada pelas 17 RPCs — evita repetir a mesma
       cláusula `WHERE` em cada uma. Novo helper `suporteapp_fn_is_weekend_start(timestamptz)`.
+
+---
+
+## 🔄 Dashboard por conversa (2026-10-02) — scripts 13 a 21
+
+O dashboard **deixou de depender de `suporteapp_tickets`**: a unidade é a conversa do Chatwoot e a severidade é a prioridade nativa. Os scripts 13–21 são cópias, na ordem de aplicação, das migrations de `supabase/migrations/20261002_*` (que são a fonte de verdade). Os scripts 05–12 acima ficam como histórico: as 17 RPCs que eles criam foram **reescritas** pelo 18 (e ajustadas por 19–21).
+
+| # | Script | Efeito |
+|---|---|---|
+| 13 | `snapshot_clear_unassigned_agent_team` | o snapshot passa a registrar desatribuição de agente/time |
+| 14 | `snapshot_estado_nativo` | 11 colunas (prioridade, criação, resolução/reaberturas, 1ª resposta nativa, espera, soneca, SLA, última atividade, muted); upsert v2; `suporteapp_sync_conversation_state` |
+| 15 | `sync_state_insere_ausentes_e_etiquetas` | a sincronização insere conversa ausente e compara etiquetas |
+| 16 | `contato_da_conversa` | `company_id`/`blocked`/`whatsapp_username`; `suporteapp_chatwoot_companies`; `suporteapp_sync_contacts` v2 |
+| 17 | `snapshot_additional_attributes` | `additional_attributes` da conversa |
+| 18 | `dashboard_por_conversa` | `suporteapp_v_conversations`, `suporteapp_fn_scope_conversations`, `v_transfers` sem ticket, drilldown e as 17 RPCs sobre a conversa |
+| 19 | `…_b_resposta_humana` | 1ª resposta/fila só com resposta humana (bot não conta) |
+| 20 | `…_c_mascara_contato` | drilldown sem telefone/e-mail |
+| 21 | `…_d_status_no_drilldown` | `p_status` no drilldown (filtro de fila no servidor) |
+
+Pré-requisitos já presentes em produção: `suporteapp_conversation_snapshot`, `suporteapp_messages`, `suporteapp_contacts`, `suporteapp_chatwoot_inboxes`, `suporteapp_label_taxonomy`, calendário comercial (`01`–`03`).
+
