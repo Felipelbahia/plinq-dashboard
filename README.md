@@ -1,5 +1,27 @@
 # 📊 Plinq · Dashboard de Suporte & Relatório Executivo v3.0
 
+## Como rodar em outra máquina
+
+**Pré-requisitos:** Node.js 22+ e npm.
+
+1. `git clone <url do repositório> && cd <pasta>`
+2. `nvm use` (lê o `.nvmrc`: Node 22)
+3. `npm ci`
+4. `cp .env.example .env` e preencha os valores (2 variáveis: SUPABASE_ANON_KEY, SUPABASE_URL) — nunca commite o `.env`
+5. `npm run build`
+
+**Deu certo quando:** `npm run build` termina com código 0.
+
+| Sintoma | Causa | Correção |
+|---|---|---|
+| `npm install` para com `EBADENGINE` | Node abaixo do mínimo (>=18.0.0) | `nvm install 22 && nvm use` |
+| erro de variável de ambiente ausente | `.env` não criado | passo 4 |
+
+**Pastas de IA (`.agent/`, `CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, `.cursorrules`):** guiam assistentes de IA, citam caminhos da máquina do dono e não são necessárias para rodar o projeto. Em outra máquina só funcionam as skills locais.
+
+**Symlinks versionados:** nenhum. Os links `sip-geral` apontam para o kit local e ficam fora do git.
+
+
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
 [![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Realtime-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B%20Vanilla-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/pt-BR/docs/Web/JavaScript)

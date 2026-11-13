@@ -36,3 +36,12 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Added by the kit update (2026-11-12): secrets, local plans, machine-specific symlinks
+.env*
+!.env.example
+.agent/plans/
+plans/
+.agent/catalog.html
+.agent/skills/sip-geral
+.claude/skills/sip-geral
