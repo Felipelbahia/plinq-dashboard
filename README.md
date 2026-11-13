@@ -19,8 +19,7 @@
 
 **Pastas de IA (`.agent/`, `CLAUDE.md`, `GEMINI.md`, `AGENTS.md`, `.cursorrules`):** guiam assistentes de IA, citam caminhos da máquina do dono e não são necessárias para rodar o projeto. Em outra máquina só funcionam as skills locais.
 
-**Symlinks versionados:** nenhum. Os links `sip-geral` apontam para o kit local e ficam fora do git.
-
+**Symlinks versionados:** nenhum. Os links `sip-geral` apontam para o kit local e ficam fora do git. As skills locais e os links `.claude/skills/*` (1) ainda não estão versionados: em outra máquina só existem depois de commitados.
 
 [![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
 [![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Realtime-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)

@@ -45,3 +45,6 @@ plans/
 .agent/catalog.html
 .agent/skills/sip-geral
 .claude/skills/sip-geral
+
+# Exports (data requested by people): local only
+exports/

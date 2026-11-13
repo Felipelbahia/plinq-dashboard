@@ -167,7 +167,7 @@ A significant change is not finished until `python .agent/scripts/checklist.py .
 - Last checked: 2026-11-12 (manifest read)
 
 ## Local rules
-> Project-specific rules kept from the previous `CLAUDE.md` (backup: `.agent/plans/rules-backup-2026-11-12/CLAUDE.md`), original text; kit boilerplate was dropped.
+> Project-specific rules kept from the previous `CLAUDE.md` (backup local, fora do git: `.agent/plans/rules-backup-2026-11-12/CLAUDE.md`), original text; kit boilerplate was dropped.
 
 ### 3. Local Skill Creation Scope
 - **STRICT LOCAL SCOPE:** When requested to create a new skill, it MUST be created ONLY inside the active project workspace (`<project_root>/.agent/skills/<skill_name>/`).
@@ -334,7 +334,6 @@ Sempre que o sistema gerar artefatos nativos (`implementation_plan.md`, `task.md
 - `STANDARDS.md`: Normas de arquitetura, convenções e código
 
 ### Linhas específicas de seções do kit antigo (preservadas, texto original)
-# AGENTS.md - Antigravity Kit (Plinq Support Dashboard)
 4. **Automated resolver (Claude Code):** the personal skill `~/.claude/skills/skill-resolver/SKILL.md` implements this exact search order as an invokable procedure.
 5. **Scope:** any skill, agent, or script named anywhere in these rule files falls under this same resolution order, whether or not that mention spells out a path.
 - **PRESERVAÇÃO E MESCLAGEM:** Ao atualizar este projeto, NUNCA apague ou sobrescreva do zero as regras locais previamente estabelecidas. As especificações locais do Plinq Support Dashboard (scripts npm, variáveis de ambiente, proteção de chaves no build, headers da Vercel e contratos de RPCs do Supabase) estão 100% preservadas e integradas neste documento.
