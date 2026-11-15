@@ -32,7 +32,7 @@ Declared once, at setup, and kept current. It says which rule modules this file 
 
 ## 3. Rule files parity
 
-`GEMINI.md` and `CLAUDE.md` stay 100% identical. Claude Code reads `./CLAUDE.md` (or `./.claude/CLAUDE.md`, **never both**: it loads the two). Antigravity reads `./.agent/rules/GEMINI.md` and/or `./GEMINI.md`. After editing one, run `python .agent/scripts/sync_rules.py`.
+`CLAUDE.md` and `AGENTS.md` at the project root stay 100% identical: Claude Code reads `./CLAUDE.md` (or `./.claude/CLAUDE.md`, **never both**: it loads the two), Antigravity and other tools read `./AGENTS.md`. `GEMINI.md` and `.agent/rules/` are legacy: never create them (`python .agent/scripts/sync_rules.py --clean-legacy` removes old copies, asking first). After editing one, run `python .agent/scripts/sync_rules.py`. When the kit's modules change, a project's `CLAUDE.md` falls behind on its own: re-run `assemble_rules.py` (same modules) and `sync_rules.py`. That is routine; check first that the diff has only module lines. Updating an old rules file: keep only the project's own rules, whole (`check_local_rules.py <backup> CLAUDE.md` must say `ok`), and drop the old generic text.
 
 ## 4. Before acting (mandatory sequence)
 
@@ -79,12 +79,13 @@ Read only when the trigger applies, and only if the file exists. With `_projectd
 
 ## 7. Plans, inbox, artifacts
 
-- Everything under `.agent/plans/` (local, git-ignored; `_projectdefines/` and `memory.md` are versioned). One plan per task.
+- Everything under `.agent/plans/` (local, always listed in the project's `.gitignore`: add the line if missing; `_projectdefines/` and `memory.md` are versioned). One plan per task.
   - Plans/loops: `execution-loops/AAAA_MM_DD/<Short Title>/NN Name.md` (inside a loop the plan is `02 Plan.md`; plan only is `00 Plan.md`; the counter never resets).
   - Handoffs: `handoffs/`. Audits: `{task-slug}.md`.
   - In edit mode, look for an existing plan of the objective first.
 - **Inbox:** deferred items go to `inbox/NNN-subject.md` at the project root (format: `inbox/README.md`). Not analyzed until the owner asks. Resolved ones move to `inbox/arquivo/`, never deleted.
 - **System artifacts (Antigravity: `implementation_plan`, `task`, `walkthrough`):** save a copy at the end as `.agent/plans/{Task Name} [PLAN|TASK|WALKTHROUGH].md` (human-readable name, never delete).
+- **Subagent context containment (Clean Return Protocol):** heavy payloads (logs, raw terminal output, full code dumps, multi-page drafts) belong on disk (`.agent/plans/`, `scratchpad/`, or destination map paths), never in chat messages. A subagent's return message to the coordinator must be strictly executive: (1) one-line status; (2) 3-5 bullets summarizing results with clickable links to files on disk; (3) blocking questions or open decisions only. Never dump raw terminal stdout/stderr or whole files in the reply.
 
 ## 8. Learn
 
@@ -110,6 +111,7 @@ A significant change is not finished until its evidence is shown: the check that
 
 - This project consumes the kit through the skill `sip-geral` (`.agent/skills/sip-geral`, installed at setup). Other SIPs installed here and their hub paths: `.agent/SIPS-CONSUMIDOS.md`.
 - A skill, agent, workflow or script named in these rules that is not in this project: resolve it through `sip-geral` (or the SIP of its domain) and read it by absolute path in the hub. Never improvise from general knowledge when a SIP covers the subject.
+- When the task needs a domain SIP (`sip-<name>`) named in these rules and it is not installed here: read its pointer at `<kit>/.agent/skills/sip-<name>/SKILL.md` (kit path: the `sip-geral` hub in `.agent/SIPS-CONSUMIDOS.md`; the pointer gives the domain hub path) and offer the owner to install it (the SIP's install prompt).
 - Scripts named `.agent/scripts/<script>.py` that are not local: run the hub's copy from this project's root (`python3 "<hub>/.agent/scripts/<script>.py"`, hub path in `.agent/SIPS-CONSUMIDOS.md`).
 - Hub agents and workflows stay in the hub; install one locally only when the owner asks (re-run the SIP's install prompt).
 
@@ -120,6 +122,8 @@ A significant change is not finished until its evidence is shown: the check that
 - Clean code (`clean-code`): concise, no over-engineering. Every logic change comes with tests (unit > integration > E2E, AAA).
 - **Tests accumulate:** every bug fix starts with a test that reproduces the bug and fails; then the fix; the test stays in the suite for good (skill `test-driven-development`). Show the failing run before the fix and the passing run after.
 - **Never weaken the suite:** do not delete, skip, or loosen a failing test (or its expected value) to get a green run without the owner's approval. A test that was already in the suite and already failing in a baseline run made before your first edit (output shown) is reported with its name and cause, and stays failing until the owner decides. A test that passed in the baseline and fails now is a regression you caused and blocks; the new bug test must pass after the fix. Ask the owner in the same reply. Until then, those named tests are the only accepted failures: `checklist.py` and the execution loop's closing gate count as green only if every other check passes, and the change is reported as "done except known failing test <name> (owner decision pending)". Never bypass the hook (`--no-verify`) for them: commits wait for the owner.
+- **A failing test is never accepted without detail:** its name, cause and the command to reproduce it go in a new item in the tested project's `inbox/`. Skipped tests and checks left "not verified" (they need another environment) also become an inbox item of that project, with the command to run where it works.
+- **Lint what you touch:** every code file you create or edit passes the project's linter (and type checker, when it has one) with no new findings. Old findings in files you did not touch are not fixed in passing.
 - **Where tests run:** the fast part of the suite (seconds) in the pre-commit hook `.githooks/pre-commit`; the full suite in `checklist.py` and before closing a significant change. No hook in the project and a fast check exists (about 5 s or less): propose installing it (step "Hook de commit" of `project-initializer`).
 - **Docs first (Context7 MCP, mandatory):** before choosing, installing, configuring or writing code for any technology — framework, library, SDK, API, CLI, and also CSS/UI libraries, component kits and design tokens — consult Context7 (`resolve-library-id` → `query-docs`) and say which library ID was used. New project: current stable version. Existing project: the version in the lockfile. Docs win over memory and templates on facts. Context7 unavailable: use official docs and say so.
 - **`## Stack` block** in this file, names only, no frozen versions. Missing? Write it the first time a technology is touched (read the lockfile, consult Context7).
@@ -156,35 +160,18 @@ A significant change is not finished until `python .agent/scripts/checklist.py .
 
 ## Project
 - Produces: software
-- Modules: core,sip-access,code,interface
+- Modules: core, sip-access, code, interface
 - Primary agent: frontend-specialist
 - SIPs: sip-geral (details: `.agent/SIPS-CONSUMIDOS.md`)
 
 ## Stack
-- Language/runtime: JavaScript, Node.js
-- Framework: none identified
-- Main libraries: serve
-- Last checked: 2026-11-12 (manifest read)
+- Language/runtime: JavaScript, HTML5, CSS3, Node.js (engines: >=18.0.0)
+- Framework: vanilla web (HTML estático + scripts ES modules), serve (14.2.4)
+- Main libraries: serve, Chart.js (CDN), Supabase JS Client (CDN)
+- Last checked: 2026-11-15 (Context7)
 
 ## Local rules
-> Project-specific rules kept from the previous `CLAUDE.md` (backup local, fora do git: `.agent/plans/rules-backup-2026-11-12/CLAUDE.md`), original text; kit boilerplate was dropped.
-
-### 3. Local Skill Creation Scope
-- **STRICT LOCAL SCOPE:** When requested to create a new skill, it MUST be created ONLY inside the active project workspace (`<project_root>/.agent/skills/<skill_name>/`).
-- **Global Exemption:** NEVER create a skill in global `0 Padrões` or `0 Mkt` unless explicitly requested by the user (e.g., *"Crie esta skill no 0 Padrões"*).
-- **Central Registry:** Whenever a new local skill is created, record it in the project's central sheet at `/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/projetos/Dashboard Suporte Plinq.md`.
-- **Claude Code Discovery (CRITICAL):** Claude Code (the CLI — not Google Antigravity) never scans `.agent/skills/`; it only auto-discovers `SKILL.md` files under `.claude/skills/` (project) and `~/.claude/skills/` (personal). Whenever a skill exists or is created at `.agent/skills/<name>/`, ALSO create `.claude/skills/<name>` as a **symlink** (`ln -s "../../.agent/skills/<name>" ".claude/skills/<name>"`) — never a copy. Never delete a `.claude/skills/<name>` entry as a "duplicate" of `.agent/skills/<name>` without first running `test -L ".claude/skills/<name>"` — if it's a real directory rather than a symlink, it may be the only thing making that skill discoverable by Claude Code, not redundant content.
-- **Skill Authoring Guide:** Whenever creating or editing a skill (any project), read `.agent/skills/writing-skills/SKILL.md` first (or global `/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/skills/writing-skills/SKILL.md`) — it defines the TDD-for-skills methodology that all new skills must follow.
-
-### 4b. Skills Sempre Alcançáveis (Qualquer Projeto, Qualquer IA)
-
-Estas 3 skills devem estar ao alcance deste projeto mesmo sem cópia local no `.agent/skills/`:
-
-| Skill | Papel | Caminho (0 Padrões) |
-|---|---|---|
-| `writing-skills` | Como criar/editar qualquer skill (TDD aplicado a documentação) | `/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/skills/writing-skills/SKILL.md` |
-| `session-handoff` | Documentar o trabalho da sessão para continuar em outra (handoff) | `/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/skills/session-handoff/SKILL.md` |
-| `execution-loop` | Ciclo Espec → Plan → Execução → QA (nota 0-10) → Debug | `/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/skills/execution-loop/SKILL.md` (+ sub-skill `spec-writing`) |
+> Regras específicas do Plinq Support Dashboard mantidas do backup local (projetos relacionados, roteamento, comandos, segurança, agentes e arquivos-chave). Boilerplate antigo do kit foi aposentado em `.agent/plans/rules-backup-2026-11-12/adaptadas.md`.
 
 ### 4c. Projetos Relacionados (Fonte de Dados e Acessos ao Supabase)
 
@@ -197,26 +184,6 @@ Este Dashboard é uma aplicação **somente leitura** que mede e visualiza o que
 
 - **MCP obrigatório para consultas ao banco**: usar o servidor `supabase-plinq` (mesmo `project_id` acima) para qualquer inspeção de schema, leitura de advisors/logs ou execução de SQL via ferramenta MCP — nunca um servidor Supabase de outro projeto.
 - **Direção do fluxo de informação**: este projeto NUNCA deve escrever nas tabelas `suporteapp_*` nem alterar o esquema — mudanças de schema pertencem ao repositório Chamados APP (raiz), que versiona as migrações DDL.
-
-### Auto-Selection Protocol
-1. **Analyze (Silent)**: Detect domains (Frontend, Design, Database/SQL, Security, QA) from user request.
-2. **Select Agent(s)**: Choose the most appropriate specialist(s).
-3. **Inform User**: Concisely state which expertise is being applied.
-4. **Apply**: Generate response using the selected agent's persona and rules.
-
-### 🧹 Clean Code (Global Mandatory)
-**ALL code MUST follow `@[skills/clean-code]` rules. No exceptions.**
-- **Code**: Concise, direct, no over-engineering. Self-documenting.
-- **Vanilla First**: Não adicionar frameworks pesados de frontend sem solicitação explícita do usuário.
-- **Testing**: Executar suite de segurança e auditoria (`npm run test:security`) após alterações críticas.
-- **Performance**: Manter renderização rápida (Core Web Vitals) e resposta assíncrona fluida para queries ao Supabase.
-
-### 📁 File Dependency Awareness
-**Before modifying ANY file:**
-1. Consultar [`STANDARDS.md`](STANDARDS.md) e [`README.md`](README.md) para convenções de arquitetura e fluxo de dados.
-2. Consultar [`package.json`](package.json) para dependências e scripts de execução.
-3. Consultar [`sql/README.md`](sql/README.md) e scripts em `sql/` ao alterar qualquer chamada a RPC ou view do Supabase.
-4. Atualizar arquivos dependentes juntos (ex: sincronização entre `index.html`, `src/dashboard.js` e `src/styles.css`).
 
 ### 💻 Project Type Routing (Frontend Web / Supabase PostgreSQL)
 
@@ -255,71 +222,6 @@ Este projeto é uma **Aplicação Web Frontend Pura (SPA Vanilla)** integrada ao
    - Tabelas, views e RPCs utilizam prefixo `suporteapp_`.
    - Janela comercial calculada entre 09h00 e 18h00 BRT com feriados via `suporteapp_calendar`.
 
-### 🛑 GLOBAL SOCRATIC GATE (TIER 0)
-
-**MANDATORY: Every user request must pass through the Socratic Gate before ANY tool use or implementation.**
-
-| Request Type | Strategy | Required Action |
-| :--- | :--- | :--- |
-| **New Feature / Build** | Deep Discovery | ASK minimum 3 strategic questions |
-| **Code Edit / Bug Fix** | Context Check | Confirm understanding + ask impact questions |
-| **Vague / Simple** | Clarification | Ask Purpose, Users, and Scope |
-| **Full Orchestration** | Gatekeeper | **STOP** subagents until user confirms plan details |
-| **Direct "Proceed"** | Validation | **STOP** → Ask 2 "Edge Case" questions |
-
-**Offer the Execution Loop:** For COMPLEX CODE, DESIGN/UI, or any multi-file request, ask the user whether to run it under the `execution-loop` skill (Espec → Plan → Execução → QA 0-10 → Debug, em `0 Padrões/.agent/skills/execution-loop/SKILL.md`).
-
-### 🏁 Final Checklist Protocol
-
-**Scripts Disponíveis para Auditoria:**
-
-| Script | Localização / Origem | Quando Usar |
-| :--- | :--- | :--- |
-| `security-audit-and-attacks.js` | `scripts/security-audit-and-attacks.js` (Local) | Sempre que alterar chaves, queries ou RPCs |
-| `sync_rules.py` | `.agent/scripts/sync_rules.py` (Local / 0 Padrões) | Sempre que alterar qualquer arquivo de regra |
-| `checklist.py` | `0 Padrões/.agent/scripts/checklist.py` | Pré-deploy e auditoria geral |
-| `security_scan.py` | `0 Padrões/.agent/skills/vulnerability-scanner/scripts/` | Auditoria de vulnerabilidades |
-| `ux_audit.py` | `0 Padrões/.agent/skills/frontend-design/scripts/` | Após modificações na interface |
-| `accessibility_checker.py` | `0 Padrões/.agent/skills/frontend-design/scripts/` | Checagem de acessibilidade e contraste |
-| `lighthouse_audit.py` | `0 Padrões/.agent/skills/performance-profiling/scripts/` | Antes de deploys de produção |
-
----
-
-### TIER 2: DESIGN & UI RULES
-
-> Diretrizes visuais específicas para o Plinq Support Dashboard:
-
-1. **Dark Mode Glassmorphism**:
-   - Paleta de cores baseada em HSL escuro com gradientes sutis, bordas com transparência (`rgba(255, 255, 255, 0.08)`) e `backdrop-filter: blur(12px)`.
-   - Acentos visuais nos tons oficiais Plinq: ciano/azul para neutros, verde para OK/resolvidos, amarelo para atenção/P1, vermelho para alertas críticos/P0.
-2. **Tipografia & Ícones**:
-   - Google Fonts Inter (`font-family: 'Inter', sans-serif`).
-   - Ícones em SVG inline de alta nitidez.
-3. **Resiliência de Layout**:
-   - Barramento de 5 filtros globais sincronizado em tempo real.
-   - Tratamento de estados vazios (empty state), carregando (skeletons/spinners) e erro de conexão com feedback claro.
-
----
-
-### 📋 PLANS & AUDITS CONVENTION
-
-> Todos os planos de tarefa, auditorias técnicas e especificações DEVEM ser salvos em `.agent/plans/`.
-
-**Naming:** `.agent/plans/{task-slug}.md`
-
-### 📋 System Artifacts Export (MANDATORY)
-Sempre que o sistema gerar artefatos nativos (`implementation_plan.md`, `task.md`, `walkthrough.md`), salve uma cópia exata do conteúdo final dentro de `.agent/plans/`:
-
-| Artifact | Origem | Destino Obrigatório no Repositório |
-| :--- | :--- | :--- |
-| `implementation_plan.md` | System artifact | `.agent/plans/{Task Name} [PLAN].md` |
-| `task.md` | System artifact | `.agent/plans/{Task Name} [TASK].md` |
-| `walkthrough.md` | System artifact | `.agent/plans/{Task Name} [WALKTHROUGH].md` |
-
-- `{Task Name}` deve ser o nome legível da tarefa (ex: `Atualizacao Padrao Inteligencia Global`).
-
----
-
 ### Agentes & Skills
 - **Especialistas**: `frontend-specialist`, `security-auditor`, `backend-specialist`, `qa-automation-engineer`, `project-planner`, `orchestrator`
 - **Skills Chave**: `clean-code`, `brainstorming`, `execution-loop`, `spec-writing`, `writing-skills`, `session-handoff`, `frontend-design`, `database-design`, `vulnerability-scanner`, `testing-patterns`, `performance-profiling`
@@ -332,12 +234,3 @@ Sempre que o sistema gerar artefatos nativos (`implementation_plan.md`, `task.md
 - `scripts/security-audit-and-attacks.js`: Suíte de testes de penetração e auditoria RLS
 - `sql/README.md`: Guia de migrações e contratos de RPCs do banco de dados
 - `STANDARDS.md`: Normas de arquitetura, convenções e código
-
-### Linhas específicas de seções do kit antigo (preservadas, texto original)
-4. **Automated resolver (Claude Code):** the personal skill `~/.claude/skills/skill-resolver/SKILL.md` implements this exact search order as an invokable procedure.
-5. **Scope:** any skill, agent, or script named anywhere in these rule files falls under this same resolution order, whether or not that mention spells out a path.
-- **PRESERVAÇÃO E MESCLAGEM:** Ao atualizar este projeto, NUNCA apague ou sobrescreva do zero as regras locais previamente estabelecidas. As especificações locais do Plinq Support Dashboard (scripts npm, variáveis de ambiente, proteção de chaves no build, headers da Vercel e contratos de RPCs do Supabase) estão 100% preservadas e integradas neste documento.
-1. **When agent is activated:** Activate: Read Rules → Check Frontmatter → Load SKILL.md → Apply All.
-1. **Internally translate** for better comprehension.
-2. **Respond in user's language** - match their communication.
-3. **Code comments/variables** remain in English (or Portuguese when following local project nomenclature like `suporteapp_*`).

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Pre-commit hook: sync rules and check parity
+if [ -f ".agent/scripts/sync_rules.py" ]; then
+    python3 .agent/scripts/sync_rules.py --check || exit 1
+elif [ -f "/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/scripts/sync_rules.py" ]; then
+    python3 "/Users/macbookpro/Documents/IA Projects/_Plataforma/0 Padrões/.agent/scripts/sync_rules.py" --check || exit 1
+fi
